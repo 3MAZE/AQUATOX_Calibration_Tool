@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQUATOX Calibration Tool</title>
+<link rel="icon" href="aquatox_CT_icon.ico" type="image/x-icon">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #0d1117;
+    --bg2:       #161b22;
+    --bg3:       #21262d;
+    --border:    #30363d;
+    --accent:    #2f81f7;
+    --accent2:   #3fb950;
+    --warn:      #d29922;
+    --danger:    #f85149;
+    --text:      #e6edf3;
+    --text2:     #8b949e;
+    --text3:     #484f58;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* ── TOPBAR ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    height: 48px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    -webkit-app-region: drag;
+  }
+  #topbar > * { -webkit-app-region: no-drag; }
+
+  .app-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .app-title span { color: var(--accent); }
+
+  .spacer { flex: 1; }
+
+  .file-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 10px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-badge.active { color: var(--accent2); border-color: var(--accent2); }
+
+  /* ── BOUTONS ── */
+  .btn {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg); border-color: var(--text2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn.primary:hover { background: #388bfd; }
+  .btn.success { background: #1a4a2e; border-color: var(--accent2); color: var(--accent2); }
+  .btn.success:hover { background: #1f5c38; }
+  .btn.warn    { background: #3a2a00; border-color: var(--warn); color: var(--warn); }
+  .btn.warn:hover { background: #4a3600; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.danger {background: #b91c1c;}
+  .btn.danger:hover {background: #dc2626;}
+  /* ── CONFIG BAR ── */
+  #configbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .cfg-label { color: var(--text2); font-size: 11px; white-space: nowrap; }
+  .cfg-input {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 4px 8px;
+    flex: 1;
+    min-width: 180px;
+    outline: none;
+  }
+  .cfg-input:focus { border-color: var(--accent); }
+  .cfg-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+  /* ── LAYOUT PRINCIPAL ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── PANNEAU CENTRAL (espèces + params) ── */
+  #center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+
+  #center-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+    #species-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        /* On le laisse normal (Block), surtout pas de display:flex ici ! */
+    }
+
+  /* scroll */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* espèce card */
+  .species-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .species-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .species-header:hover { background: var(--bg3); }
+  .species-toggle {
+    font-size: 10px;
+    color: var(--text2);
+    transition: transform 0.2s;
+    width: 12px;
+  }
+  .species-toggle.open { transform: rotate(90deg); }
+  .species-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    flex: 1;
+  }
+  .species-count {
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .species-body { display: none; border-top: 1px solid var(--border); }
+  .species-body.open { display: block; }
+
+  /* tableau paramètres */
+  .param-table { width: 100%; border-collapse: collapse; }
+  .param-table th {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 6px 12px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .param-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--bg3);
+    vertical-align: middle;
+  }
+  .param-table tr:last-child td { border-bottom: none; }
+  .param-table tr:hover td { background: rgba(47,129,247,0.04); }
+
+  .param-check {
+    accent-color: var(--accent);
+    width: 14px; height: 14px;
+    cursor: pointer;
+  }
+  .param-name { font-size: 12px; color: var(--text); }
+  .param-key  { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .param-val  {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    padding: 2px 6px;
+    width: 100px;
+    outline: none;
+    text-align: right;
+  }
+  .param-val:focus { border-color: var(--accent); }
+  .param-tol {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--warn);
+    padding: 2px 6px;
+    width: 60px;
+    outline: none;
+    text-align: right;
+  }
+  .param-tol:focus { border-color: var(--warn); }
+  .param-source { font-size: 10px; color: var(--text3); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── empty state propre ── */
+    #empty-state {
+        height: 100%; /* ◄ Prend toute la hauteur disponible */
+        display: flex; /* ◄ Centre le texte et l'image à l'intérieur */
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        color: var(--text2);
+        text-align: center;
+    }
+
+        #empty-state img {
+            display: block;
+            max-width: 900px; 
+            opacity: 1; 
+        }
+
+        #empty-state p {
+            font-size: 13px;
+        }
+
+  /* ── PANNEAU DROITE (actions + log) ── */
+  #right {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  #actions {
+    padding: 12px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+    #sens-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+    }
+
+        #sens-overlay.show {
+            display: flex;
+        }
+
+    #sens-modal {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        width: 580px;
+        max-height: 75vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .heatmap-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-top: 4px;
+    }
+
+    .heatmap-cell {
+        font-family: var(--mono);
+        font-size: 9px;
+        padding: 2px 5px;
+        border-radius: 3px;
+        color: #fff;
+        white-space: nowrap;
+        cursor: default;
+    }
+    #sens-modal-header {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        gap: 10px;
+    }
+
+    #sens-modal-header h2 {
+        font-size: 14px;
+        font-weight: 600;
+        flex: 1;
+    }
+  .action-group { display: flex; flex-direction: column; gap: 4px; }
+  .action-group-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+  .action-row { display: flex; gap: 4px; }
+  .action-row .btn { flex: 1; }
+
+  .iter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .iter-label { font-size: 11px; color: var(--text2); flex: 1; }
+  .iter-input {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 70px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 3px 6px;
+    outline: none;
+    text-align: right;
+  }
+  .iter-input:focus { border-color: var(--accent); }
+
+  /* ── LOG ── */
+  #log-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #log-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #spinner {
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  #spinner.active { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #log-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text2);
+    background: var(--bg);
+  }
+  .log-line { white-space: pre-wrap; word-break: break-all; }
+  .log-line.ok   { color: var(--accent2); }
+  .log-line.err  { color: var(--danger); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.info { color: var(--accent); }
+
+  /* ── BILAN MODAL ── */
+  #bilan-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+#calib-review-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+    #calib-review-overlay.show {
+        display: flex;
+    }
+
+#calib-review-modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 620px;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#calib-review-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+}
+
+    #calib-review-header h2 {
+        font-size: 14px;
+        font-weight: 600;
+        flex: 1;
+    }
+
+#calib-review-table-wrap {
+    overflow-y: auto;
+    padding: 12px 18px;
+}
+  #bilan-overlay.show { display: flex; }
+  #bilan-modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #bilan-modal-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  #bilan-modal-header h2 { font-size: 14px; font-weight: 600; flex: 1; }
+  #bilan-table-wrap { overflow-y: auto; padding: 12px 18px; }
+  .bilan-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .bilan-table th {
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    text-align: right; padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .bilan-table th:first-child { text-align: left; }
+  .bilan-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--bg3);
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .bilan-table td:first-child { text-align: left; color: var(--accent); font-size: 12px; font-family: var(--sans); }
+  .good { color: var(--accent2); }
+  .bad  { color: var(--danger); }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar-wrap {
+    height: 3px;
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+  #progress-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  #progress-bar.indeterminate {
+    width: 30%;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0%   { margin-left: 0%; }
+    50%  { margin-left: 70%; }
+    100% { margin-left: 0%; }
+  }
+
+  /* ── HELP MODAL ── */
+  #help-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  #help-overlay.show { display: flex; }
+  #help-modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 560px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #help-modal-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  #help-modal-header h2 { font-size: 14px; font-weight: 600; flex: 1; }
+  #help-modal-body {
+    overflow-y: auto;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text2);
+  }
+  .help-section-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  #help-modal-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+  }
+</style>
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════════════ TOPBAR -->
+    <div id="topbar">
+        <img src="aquatox_CT_icon.png" height="28" width="28" style="flex-shrink:0;" alt="logo">
+        <span class="app-title">AQUATOX <span>Calibration</span> Tool</span>
+        <div class="spacer"></div>
+        <span class="file-badge" id="file-badge">No file selected</span>
+        <button class="btn primary" onclick="selectionnerFichier()">📂 Open .txt</button>
+        <button class="btn" onclick="sauvegarderTxt()" id="btn-save-txt" disabled>💾 Save optim_sim.txt</button>
+        <button class="btn success" onclick="sauvegarderExcel()" id="btn-excel" disabled>💾 Save Excel</button>
+        <button class="btn" onclick="ouvrirHelp()">? Help</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ CONFIG -->
+    <div id="configbar">
+        <span class="cfg-label">AQUATOX.exe</span>
+        <input class="cfg-input" id="inp-exe" placeholder="Path to AQUATOX.exe…" />
+        <button class="btn" onclick="choisirExe()">…</button>
+        <div class="cfg-sep"></div>
+        <span class="cfg-label">Working directory</span>
+        <input class="cfg-input" id="inp-dir" placeholder="Output folder…" />
+        <button class="btn" onclick="choisirDossier()">…</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ PROGRESS -->
+    <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+    <!-- ═══════════════════════════════════════════════════ MAIN -->
+    <div id="main">
+
+        <!-- CENTRE -->
+        <div id="center">
+            <div id="center-toolbar">
+                <span class="section-title">Species &amp; Parameters</span>
+                <div class="spacer"></div>
+                <button class="btn" onclick="toutCocher(true)" id="btn-all-on" disabled>✓ Check All</button>
+                <button class="btn" onclick="toutCocher(false)" id="btn-all-off" disabled>✗ Uncheck All</button>
+            </div>
+            <div id="species-container">
+                <div id="empty-state">
+                    <img src="empty_state.png" alt="No data loaded" />
+                    <p>Open an AQUATOX <strong>.txt</strong> file to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- DROITE -->
+        <div id="right">
+            <div id="actions">
+
+                <!-- Simulation -->
+                <div class="action-group">
+                    <div class="action-group-label">Simulation</div>
+                    <button class="btn" onclick="lancerSimulationBase()" id="btn-sim" disabled>▶ Run Simulation</button>
+                </div>
+
+                <!-- Calibration -->
+                <div class="action-group">
+                    <div class="action-group-label">Calibration</div>
+                    <div class="iter-row">
+                        <span class="iter-label">Max iterations</span>
+                        <input class="iter-input" id="inp-maxiter" type="number" value="50" min="5" max="500">
+                    </div>
+                    <div class="iter-row">
+                        <span class="iter-label">Block size (auto)</span>
+                        <input class="iter-input" id="inp-blocksize" type="number" value="3" min="1" max="10">
+                    </div>
+                    <div class="iter-row">
+                        <span class="iter-label">Algorithm</span>
+                        <select class="iter-input" id="inp-algo" style="width:100%">
+                            <option value="de" selected>Differential Evolution</option>
+                            <option value="cma">CMA-ES</option>
+                        </select>
+                    </div>
+                    <div class="algo-hint" id="algo-hint" style="font-size:11px; color:#888; margin-bottom:6px; display:none;">
+                        💡 CMA-ES recommended for >12 parameters
+                    </div>
+                    <div class="action-row">
+                        <button class="btn primary" onclick="lancerCalibration(false)" id="btn-calib" disabled>▶ Calibrate</button>
+                        <button class="btn warn" onclick="lancerCalibration(true)" id="btn-calib-auto" disabled>⚡ Auto</button>
+
+                    </div>
+                </div>
+
+                <!-- Sensitivity -->
+                <div class="action-group">
+                    <div class="action-group-label">Sensitivity</div>
+                    <div class="iter-row">
+                        <span class="iter-label">Points / parameter</span>
+                        <input class="iter-input" id="inp-npoints" type="number" value="5" min="3" max="20">
+                    </div>
+                    <button class="btn" onclick="lancerSensibilite()" id="btn-sens" disabled>📈 Sensitivity Analysis</button>
+                </div>
+
+                <!-- Results -->
+                <div class="action-group">
+                    <div class="action-group-label">Results</div>
+                    <div class="action-row">
+                        <button class="btn" onclick="genererGraphes()" id="btn-graph" disabled>📊 Plot Results</button>
+                        <button class="btn" onclick="ouvrirDossierGraphes()" id="btn-open">📁 Open Folder</button>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="action-group">
+                    <div class="action-group-label">Controls</div>
+                    <div class="action-row">
+                        <button class="btn" onclick="basculerPause()" id="btn-pause" disabled>⏸ Pause</button>
+                        <button class="btn" onclick="stopperTache()" id="btn-stop" disabled style="background:#b91c1c;">⏹ Stop</button>
+                    </div>
+                </div>
+
+            </div>
+            <!-- LOG -->
+            <div id="log-panel">
+                <div id="log-header">
+                    <div id="spinner"></div>
+                    <span class="section-title">Log</span>
+                    <div class="spacer"></div>
+                    <button class="btn" onclick="clearLog()" style="padding:2px 8px;font-size:10px;">✕ Clear</button>
+                </div>
+                <div id="log-content"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ BILAN MODAL -->
+    <div id="bilan-overlay" onclick="closeBilan(event)">
+        <div id="bilan-modal">
+            <div id="bilan-modal-header">
+                <h2>📊 Simulation Report</h2>
+                <button class="btn" onclick="closeBilan()">✕ Close</button>
+            </div>
+            <div id="bilan-table-wrap">
+                <table class="bilan-table" id="bilan-table">
+                    <thead>
+                        <tr>
+                            <th>Species</th>
+                            <th>Initial Value</th>
+                            <th>Final value (avg.)</th>
+                            <th>Deviation (%)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bilan-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ HELP MODAL -->
+    <div id="help-overlay" onclick="closeHelp(event)">
+        <div id="help-modal">
+            <div id="help-modal-header">
+                <h2>How to use</h2>
+                <button class="btn" onclick="closeHelp()">✕ Close</button>
+            </div>
+            <div id="help-modal-body">
+                <p style="margin-bottom: 12px; color: var(--text); font-size: 13px;">
+                    </strong>AQUATOX Calibration Tool </strong> allows you to configure,
+                    simulate and calibrate your AQUATOX scenarios. Here is a quick notice on <i>How to use it<i>.
+                </p>
+                <div>
+                    <div class="help-section-title">1 — Setup</div>
+                    Set the path to <strong>AQUATOX.exe</strong> and a <strong>working directory</strong> where temporary files and results will be saved. These paths are remembered as long as the app is open.
+                </div>
+
+                <div>
+                    <div class="help-section-title">2 — Open a configuration file</div>
+                    Click <strong>Open .txt</strong> to load an AQUATOX scenario file. The tool will parse it automatically and display all detected species and their calibratable parameters.
+                </div>
+
+                <div>
+                    <div class="help-section-title">3 — Edit parameters</div>
+                    For each species, you can adjust the <strong>Value</strong> and <strong>Tolerance (%)</strong> of each parameter. Check the box next to a parameter to include it in calibration. You can use <strong>Check All / Uncheck All</strong> to select quickly.
+                </div>
+
+                <div>
+                    <div class="help-section-title">4 — Run Simulation</div>
+                    Launches a single AQUATOX run using the current parameter values. A report comparing initial vs final biomasses will appear automatically it allow to check the error for each species.
+                </div>
+
+                <div>
+                    <div class="help-section-title">5 — Calibration</div>
+                    <strong>Calibrate</strong> optimises only the checked parameters using Nelder-Mead. <strong>Auto</strong> groups parameters into blocks and calibrates them sequentially. Set <em>Max iterations</em> and <em>Block size</em> to control the process.
+                </div>
+
+                <div>
+                    <div class="help-section-title">6 — Sensitivity Analysis</div>
+                    Varies each checked parameter one at a time over its tolerance range and measures the impact on simulated biomass. Results are saved as graphs in the output folder.
+                </div>
+
+                <div>
+                    <div class="help-section-title">7 — Results</div>
+                    <strong>Plot Results</strong> generates comparison graphs for all species. <strong>Open Folder</strong> opens the output directory directly in Explorer.
+                </div>
+
+                <div>
+                    <div class="help-section-title">8 — Save Excel</div>
+                    Exports the current parameter configuration to a <strong>.xlsx</strong> file for archiving or sharing with colleagues.
+                </div>
+
+            </div>
+            <div id="help-modal-footer">
+                <button class="btn primary" onclick="closeHelp()">Got it</button>
+            </div>
+        </div>
+    </div>
+    <div id="calib-review-overlay" onclick="closeCalibModal(event)">
+        <div id="calib-review-modal">
+            <div id="calib-review-header">
+                <h2>Optimised Parameters</h2>
+                <button class="btn" onclick="closeCalibModal()">✕ Close</button>
+            </div>
+            <div id="calib-review-table-wrap">
+                <table class="bilan-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left">Species</th>
+                            <th style="text-align:left">Parameter</th>
+                            <th style="text-align:left">Tolerance</th>
+                            <th>Before</th>
+                            <th>After</th>
+                            <th>Δ%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calib-review-tbody"></tbody>
+                </table>
+            </div>
+            <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
+                <button class="btn" onclick="closeCalibModal()">Discard</button>
+                <button class="btn primary" onclick="appliquerCalibration()">Apply to UI</button>
+            </div>
+        </div>
+    </div>
+    <div id="sens-overlay" onclick="closeSensModal(event)">
+        <div id="sens-modal">
+            <div id="sens-modal-header">
+                <h2>📊 Auto-select Parameters</h2>
+                <button class="btn" onclick="closeSensModal()">✕ Close</button>
+            </div>
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border);
+                display:flex;align-items:center;gap:12px;">
+                <span style="font-size:12px;color:var(--text2)">Sensitivity threshold</span>
+                <input type="range" id="sens-threshold" min="1" max="200" value="20" step="1"
+                       oninput="updateSensPreview()"
+                       style="flex:1;accent-color:var(--accent)">
+                <span id="sens-threshold-display" style="font-family:var(--mono);
+            font-size:13px;color:var(--accent);width:48px;text-align:right">20%</span>
+            </div>
+            <div style="padding:6px 18px;font-size:11px;color:var(--text3)" id="sens-summary"></div>
+            <div style="overflow-y:auto;padding:0 18px 12px;max-height:45vh">
+                <table class="bilan-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left">Species</th>
+                            <th style="text-align:left">Parameter</th>
+                            <th>Max</th>
+                            <th style="text-align:left">Influence by biomass</th>
+                            <th>✓</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sens-tbody"></tbody>
+                </table>
+            </div>
+            <div style="padding:12px 18px;border-top:1px solid var(--border);
+                display:flex;justify-content:flex-end;gap:8px;">
+                <button class="btn" onclick="closeSensModal()">Cancel</button>
+                <button class="btn primary" onclick="appliquerSensibilite()">Apply to UI</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // ══════════════════════════════════════════════════════════
+        // ÉTAT GLOBAL
+        // ══════════════════════════════════════════════════════════
+        let txtPath = null;
+        let speciesData = [];   // [{nom, params:[{tech_key, label, valeur, tolerance, calibrer, source}]}]
+
+        // ══════════════════════════════════════════════════════════
+        // UTILITAIRES
+        // ══════════════════════════════════════════════════════════
+        function log(msg) {
+            const el = document.getElementById('log-content');
+            const div = document.createElement('div');
+            div.className = 'log-line';
+            if (typeof msg === 'object' && msg.type === 'action') {
+                div.innerHTML = msg.text + ' ';
+                const btn = document.createElement('span');
+                btn.textContent = msg.btnLabel;
+                btn.style.cssText = 'color:var(--accent);cursor:pointer;text-decoration:underline;font-family:var(--mono);';
+                btn.onclick = typeof msg.action === 'string'
+                    ? () => window[msg.action]()
+                    : msg.action;
+                div.appendChild(btn);
+            } else {
+                if (msg.startsWith('✅')) div.className += ' ok';
+                else if (msg.startsWith('❌')) div.className += ' err';
+                else if (msg.startsWith('⚠')) div.className += ' warn';
+                else if (msg.startsWith('→') || msg.startsWith('  →')) div.className += ' info';
+                div.textContent = msg;
+            }
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        window.appendLog = log;
+
+        function clearLog() {
+            document.getElementById('log-content').innerHTML = '';
+        }
+
+        function setRunning(yes) {
+            const spinner = document.getElementById('spinner');
+            const bar = document.getElementById('progress-bar');
+            spinner.className = yes ? 'active' : '';
+            bar.className = yes ? 'indeterminate' : '';
+            if (!yes) bar.style.width = '0%';
+            const btns = ['btn-sim', 'btn-calib', 'btn-calib-auto', 'btn-sens', 'btn-graph'];
+            btns.forEach(id => {
+                const b = document.getElementById(id);
+                if (b) b.disabled = yes || speciesData.length === 0;
+            });
+            document.getElementById('btn-pause').disabled = !yes;
+            document.getElementById('btn-stop').disabled = !yes;
+            if (!yes) {
+                // reset le label pause quand la tâche se termine
+                const btn = document.getElementById('btn-pause');
+                btn.textContent = '⏸ Pause';
+            }
+        }
+
+        window.onTaskDone = function () { setRunning(false); };
+
+        function getExe() { return document.getElementById('inp-exe').value.trim(); }
+        function getDir() { return document.getElementById('inp-dir').value.trim(); }
+        function getMaxIter() { return parseInt(document.getElementById('inp-maxiter').value) || 50; }
+        function getBlockSize() { return parseInt(document.getElementById('inp-blocksize').value) || 3; }
+        function getNPoints() { return parseInt(document.getElementById('inp-npoints').value) || 5; }
+
+        function collectParams() {
+            const params = [];
+            speciesData.forEach(sp => {
+                sp.params.forEach(p => {
+                    const pid = safeId(sp.nom, p.tech_key);
+                    const checkEl = document.getElementById('chk_' + pid);
+                    const valEl = document.getElementById('val_' + pid);
+                    const tolEl = document.getElementById('tol_' + pid);
+                    params.push({
+                        org: sp.nom,
+                        tech_key: p.tech_key,
+                        label: p.label,
+                        valeur: valEl ? parseFloat(valEl.value) : p.valeur,
+                        tolerance: tolEl ? parseInt(tolEl.value) : p.tolerance,
+                        calibrer: checkEl ? checkEl.checked : false,
+                        source: p.source,
+                    });
+                });
+            });
+            return params;
+        }
+
+        function enableActionButtons() {
+            ['btn-excel', 'btn-save-txt', 'btn-sim', 'btn-calib', 'btn-calib-auto',
+                'btn-sens', 'btn-graph', 'btn-all-on', 'btn-all-off'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = false;
+                });
+        }
+        async function basculerPause() {
+            const res = await window.pywebview.api.basculer_pause();
+            if (!res.ok) { log(`❌ ${res.error}`); return; }
+            const btn = document.getElementById('btn-pause');
+            if (res.data === 'paused') {
+                btn.textContent = '▶ Reprendre';
+            } else {
+                btn.textContent = '⏸ Pause';
+            }
+        }
+
+        async function stopperTache() {
+            const res = await window.pywebview.api.stopper();
+            if (!res.ok) log(`❌ ${res.error}`);
+            // le bouton se désactivera tout seul via onTaskDone → setRunning(false)
+        }
+        // ══════════════════════════════════════════════════════════
+        // FICHIER
+        // ══════════════════════════════════════════════════════════
+        async function selectionnerFichier() {
+            const res = await window.pywebview.api.choisir_fichier_txt();
+            if (res.ok && res.data) {
+                txtPath = res.data;
+                const badge = document.getElementById('file-badge');
+                badge.textContent = txtPath.split(/[\\\/]/).pop();
+                badge.className = 'file-badge active';
+                log('File: ' + txtPath);
+                await extraireDonnees();
+            }
+        }
+
+        async function extraireDonnees() {
+            if (!txtPath) { log('❌ No file selected.'); return; }
+            log('Extracting data…');
+            const res = await window.pywebview.api.extraire_donnees(txtPath);
+            if (!res.ok) { log(`❌ ${res.error}`); return; }
+
+            speciesData = res.data;
+            renderSpecies();
+            enableActionButtons();
+            log(`✅ ${speciesData.length} species detected.`);
+        }
+
+        async function choisirExe() {
+            const res = await window.pywebview.api.choisir_exe();
+            if (res.ok && res.data) document.getElementById('inp-exe').value = res.data;
+        }
+
+        async function choisirDossier() {
+            const res = await window.pywebview.api.choisir_dossier();
+            if (res.ok && res.data) document.getElementById('inp-dir').value = res.data;
+        }
+        async function sauvegarderTxt() {
+            if (!txtPath) { log('❌ No file loaded.'); return; }
+            const wdir = getDir();
+            if (!wdir) { log('❌ Set the working directory first.'); return; }
+            const res = await window.pywebview.api.sauvegarder_txt_optimise(txtPath, wdir, collectParams());
+            if (res.ok) log(`✅ Optimised .txt saved: ${res.data}`);
+            else log(`❌ ${res.error}`);
+        }
+
+        window.onCalibrationDone = function () {
+            setRunning(false);
+            log({
+                type: 'action', text: '✅ Calibration complete —',
+                btnLabel: 'Review optimised values', action: 'ouvrirCalibModal'
+            });
+        };
+        window.onSensitivityDone = function () {
+            setRunning(false);
+            log({
+                type: 'action', text: '✅ Sensitivity analysis complete —',
+                btnLabel: 'Auto-select parameters', action: 'ouvrirSensModal'
+            });
+
+        };
+        async function ouvrirCalibModal() {
+            const res = await window.pywebview.api.get_calibration_results();
+            if (!res.ok) { log(`❌ ${res.error}`); return; }
+            const rows = res.data;
+            console.log('calib rows:', JSON.stringify(rows));
+            const tbody = document.getElementById('calib-review-tbody');
+            tbody.innerHTML = '';
+            console.log('type:', typeof rows, 'isArray:', Array.isArray(rows), 'length:', rows?.length);
+            rows.forEach(r => {
+                try {
+                    const tr = document.createElement('tr');
+                    const sign = r.delta >= 0 ? '+' : '';
+                    const cls = Math.abs(r.delta) > 50 ? 'warn' : 'ok';
+                    // Calcul T2 pour affichage dans la modale
+                    const T1 = parseFloat(document.getElementById('tol_' + safeId(r.org, r.tech_key))?.value || 20);
+                    const Vmin1 = r.old * (1 - T1 / 100);
+                    const Vmax1 = r.old * (1 + T1 / 100);
+                    const T2 = Math.abs(r.new - Vmin1) < Math.abs(r.new - Vmax1)
+                        ? 100 * (1 - Vmin1 / r.new)
+                        : 100 * (Vmax1 / r.new - 1);
+                    r._T2 = T2; // stocké pour appliquerCalibration si besoin
+
+                    tr.innerHTML = `
+                              <td>${r.org}</td>
+                              <td style="font-family:var(--mono)">${r.tech_key}</td>
+                              <td style="text-align:right;font-family:var(--mono);color:var(--warn)">${T1.toFixed(1)}% → ${T2.toFixed(1)}%</td>
+                              <td style="text-align:right;font-family:var(--mono)">${r.old.toPrecision(4)}</td>
+                              <td style="text-align:right;font-family:var(--mono)">${r.new.toPrecision(4)}</td>
+                              <td class="${cls}" style="text-align:right;font-family:var(--mono)">${sign}${r.delta.toFixed(1)}%</td>`;
+                    tbody.appendChild(tr);
+                } catch (e) { console.error('row error:', e, r); }
+            });
+            document._calibRows = rows;
+            document.getElementById('calib-review-overlay').classList.add('show');
+        }
+
+        function appliquerCalibration() {
+            document._calibRows.forEach(r => {
+                const pid = safeId(r.org, r.tech_key);
+                const valInput = document.getElementById('val_' + pid);
+                const tolInput = document.getElementById('tol_' + pid);
+                if (!valInput || !tolInput) return;
+
+                const V1 = r.old;
+                const V2 = r.new;
+                const T1 = parseFloat(tolInput.value);
+                const Vmin1 = V1 * (1 - T1 / 100);
+                const Vmax1 = V1 * (1 + T1 / 100);
+
+                // Recalcul T2 selon la borne la plus proche
+                let T2;
+                if (Math.abs(V2 - Vmin1) < Math.abs(V2 - Vmax1)) {
+                    // V2 plus proche du min → on conserve Vmin1
+                    T2 = 100 * (1 - Vmin1 / V2);
+                } else {
+                    // V2 plus proche du max → on conserve Vmax1
+                    T2 = 100 * (Vmax1 / V2 - 1);
+                }
+
+                valInput.value = r.new;
+                tolInput.value = r._T2.toFixed(1);
+            });
+            document.getElementById('calib-review-overlay').classList.remove('show');
+            log('✅ UI updated with optimised values.');
+        }
+
+        function closeCalibModal(e) {
+            if (!e || e.target === document.getElementById('calib-review-overlay') || !e.target) {
+                document.getElementById('calib-review-overlay').classList.remove('show');
+            }
+        }
+        async function ouvrirSensModal() {
+            const res = await window.pywebview.api.get_sensitivity_scores();
+            if (!res.ok) { log(`❌ ${res.error}`); return; }
+            document._sensScores = res.data;
+            // Ouvrir le modal D'ABORD, puis remplir
+            document.getElementById('sens-overlay').classList.add('show');
+            try {
+                updateSensPreview();
+            } catch (e) {
+                log(`❌ Erreur affichage sensibilité : ${e.message}`);
+                console.error(e);
+            }
+        }
+
+        // Interpolation de couleur : 0% → bleu froid, 100%+ → rouge chaud
+        function _heatColor(score, maxVal) {
+            const t = Math.min(score / Math.max(maxVal, 1), 1);
+            // Bleu → Jaune → Rouge  (palette plasma-like)
+            const stops = [
+                [15, 17, 45],    // t=0  bleu sombre
+                [88, 36, 145],   // t=0.25
+                [188, 55, 84],   // t=0.5
+                [240, 130, 40],  // t=0.75
+                [252, 230, 80],  // t=1  jaune
+            ];
+            const idx = t * (stops.length - 1);
+            const lo = stops[Math.floor(idx)];
+            const hi = stops[Math.min(Math.ceil(idx), stops.length - 1)];
+            const f = idx - Math.floor(idx);
+            const r = Math.round(lo[0] + f * (hi[0] - lo[0]));
+            const g = Math.round(lo[1] + f * (hi[1] - lo[1]));
+            const b = Math.round(lo[2] + f * (hi[2] - lo[2]));
+            return `rgb(${r},${g},${b})`;
+        }
+
+        function updateSensPreview() {
+            const k = parseFloat(document.getElementById('sens-threshold').value);
+            const scores = document._sensScores;  // {label: {max_score, low_influence, scores_by_bio}}
+            document.getElementById('sens-threshold-display').textContent = k.toFixed(0) + '%';
+
+            const tbody = document.getElementById('sens-tbody');
+            tbody.innerHTML = '';
+            let nSensible = 0;
+
+            // Calcul du max global pour la normalisation de couleur
+            const allScores = Object.values(scores).flatMap(s =>
+                Object.values(s.scores_by_bio)
+            );
+            const globalMax = Math.max(...allScores, 1);
+
+            Object.entries(scores)
+                .sort((a, b) => b[1].max_score - a[1].max_score)
+                .forEach(([label, data]) => {
+                    const maxScore = data.max_score;
+                    const sensible = maxScore >= k;
+                    if (sensible) nSensible++;
+                    const [org, tech_key] = label.split('__');
+
+                    // Construction des cellules heatmap par biomasse
+                    const heatCells = Object.entries(data.scores_by_bio)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([bio, sc]) => {
+                            const bg = _heatColor(sc, globalMax);
+                            return `<span class="heatmap-cell" title="${bio}: ${sc.toFixed(1)}%"
+                                    style="background:${bg};opacity:${sc < 0.5 ? 0.35 : 1}">
+                                    ${bio.length > 12 ? bio.slice(0, 11) + '…' : bio} ${sc.toFixed(0)}%
+                                </span>`;
+                        }).join('');
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                            <td style="font-family:var(--mono);font-size:11px;vertical-align:top;padding-top:8px">${org}</td>
+                            <td style="font-family:var(--mono);font-size:11px;vertical-align:top;padding-top:8px">${tech_key}</td>
+                            <td style="text-align:right;font-family:var(--mono);vertical-align:top;padding-top:8px;
+                                       color:${sensible ? 'var(--accent2)' : 'var(--text3)'}">
+                                ${maxScore.toFixed(1)}%
+                            </td>
+                            <td style="padding:6px 0 6px 8px">
+                                <div class="heatmap-wrap">${heatCells}</div>
+                            </td>
+                            <td style="text-align:center;vertical-align:top;padding-top:8px">
+                                ${sensible ? '✅' : '<span style="color:var(--text3)">—</span>'}
+                            </td>`;
+                    tbody.appendChild(tr);
+                });
+
+            document.getElementById('sens-summary').textContent =
+                `${nSensible} parameter(s) will be checked, ${Object.keys(scores).length - nSensible} unchecked.`;
+        }
+
+        function appliquerSensibilite() {
+            const k = parseFloat(document.getElementById('sens-threshold').value);
+            const scores = document._sensScores;
+            Object.entries(scores).forEach(([label, data]) => {
+                const [org, tech_key] = label.split('__');
+                const pid = safeId(org, tech_key);
+                const chk = document.getElementById('chk_' + pid);
+                if (chk) chk.checked = data.max_score >= k;
+            });
+            speciesData.forEach(sp => updateCount(safeId(sp.nom, ''), sp.params.length));
+            document.getElementById('sens-overlay').classList.remove('show');
+            log(`✅ Parameters auto-selected (threshold: ${k.toFixed(0)}%).`);
+        }
+
+        function closeSensModal(e) {
+            if (!e || e.target === document.getElementById('sens-overlay') || !e.target) {
+                document.getElementById('sens-overlay').classList.remove('show');
+            }
+        }
+        // ══════════════════════════════════════════════════════════
+        // RENDU DES ESPÈCES
+        // ══════════════════════════════════════════════════════════
+        function safeId(nom, tech_key) {
+            return `${nom}_${tech_key}`.replace(/[^a-zA-Z0-9_]/g, '_');
+        }
+
+        function renderSpecies() {
+            const container = document.getElementById('species-container');
+            document.getElementById('empty-state')?.remove();
+            container.innerHTML = '';
+
+            speciesData.forEach(sp => {
+                const sid = safeId(sp.nom, '');
+                const card = document.createElement('div');
+                card.className = 'species-card';
+
+                const nChecked = sp.params.filter(p => p.calibrer).length;
+
+                card.innerHTML = `
+                  <div class="species-header" onclick="toggleSpecies('body_${sid}', this)">
+                    <span class="species-toggle open" id="tog_${sid}">▶</span>
+                    <span class="species-name">${sp.nom}</span>
+                    <span class="species-count" id="count_${sid}">${nChecked}/${sp.params.length} to calibrate</span>
+                  </div>
+                  <div class="species-body open" id="body_${sid}">
+                    <table class="param-table">
+                      <thead><tr>
+                        <th style="width:28px">✓</th>
+                        <th>Parameter</th>
+                        <th style="width:110px;text-align:right">Value</th>
+                        <th style="width:70px;text-align:right">Tol.%</th>
+                        <th>Source</th>
+                      </tr></thead>
+                      <tbody id="tbody_${sid}"></tbody>
+                    </table>
+                  </div>`;
+                container.appendChild(card);
+
+                const tbody = document.getElementById(`tbody_${sid}`);
+                sp.params.forEach(p => {
+                    const pid = safeId(sp.nom, p.tech_key);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                    <td><input type="checkbox" class="param-check" id="chk_${pid}"
+                        ${p.calibrer ? 'checked' : ''}
+                        onchange="updateCount('${sid}', ${sp.params.length})"></td>
+                    <td>
+                      <div class="param-name">${p.label}</div>
+                      <div class="param-key">${p.tech_key}</div>
+                    </td>
+                    <td style="text-align:right">
+                      <input class="param-val" id="val_${pid}" value="${p.valeur}" type="number" step="any">
+                    </td>
+                    <td style="text-align:right">
+                      <input class="param-tol" id="tol_${pid}" value="${p.tolerance}" type="number" min="0" max="100">
+                    </td>
+                    <td><span class="param-source" title="${p.source}">${p.source || '—'}</span></td>`;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        function toggleSpecies(bodyId, headerEl) {
+            const body = document.getElementById(bodyId);
+            const tog = headerEl.querySelector('.species-toggle');
+            body.classList.toggle('open');
+            tog.classList.toggle('open');
+        }
+
+        function updateCount(sid, total) {
+            const countEl = document.getElementById('count_' + sid);
+            if (!countEl) return;
+            const tbody = document.getElementById('tbody_' + sid);
+            if (!tbody) return;
+            const checked = tbody.querySelectorAll('input[type=checkbox]:checked').length;
+            countEl.textContent = checked + '/' + total + ' to calibrate';
+        }
+
+        function toutCocher(val) {
+            document.querySelectorAll('.param-check').forEach(el => el.checked = val);
+            speciesData.forEach(sp => {
+                const sid = safeId(sp.nom, '');
+                updateCount(sid, sp.params.length);
+            });
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // EXCEL
+        // ══════════════════════════════════════════════════════════
+        async function sauvegarderExcel() {
+            const wdir = getDir();
+            if (!wdir) { log('❌ Set the working directory first.'); return; }
+            const res = await window.pywebview.api.generer_excel(wdir);
+            if (res.ok) log(`✅ Excel saved: ${res.data}`);
+            else log(`❌ ${res.error}`);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // SIMULATION BASE
+        // ══════════════════════════════════════════════════════════
+        async function lancerSimulationBase() {
+            const exe = getExe(); const wdir = getDir();
+            if (!exe || !wdir) { log('❌ Set AQUATOX.exe path and working directory first.'); return; }
+            setRunning(true);
+            log('▶ Running base simulation…');
+            const res = await window.pywebview.api.lancer_simulation_base(exe, wdir, collectParams());
+            if (!res.ok) { log(`❌ ${res.error}`); setRunning(false); }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // CALIBRATION
+        // ══════════════════════════════════════════════════════════
+        function getAlgo() { return document.getElementById('inp-algo').value; }
+
+        // Suggestion auto de l'algo selon le nombre de paramètres cochés
+        function updateAlgoHint() {
+            const nChecked = speciesData.reduce((acc, sp) =>
+                acc + sp.params.filter(p => p.calibrer).length, 0);
+            const hint = document.getElementById('algo-hint');
+            const sel = document.getElementById('inp-algo');
+            if (!hint || !sel) return;
+            if (nChecked > 12 && sel.value !== 'cma') {
+                hint.style.display = 'block';
+            } else {
+                hint.style.display = 'none';
+            }
+        }
+
+        async function lancerCalibration(autoMode) {
+            const exe = getExe(); const wdir = getDir();
+            if (!exe || !wdir) { log('❌ Set AQUATOX.exe path and working directory first.'); return; }
+            setRunning(true);
+
+            const algo = getAlgo();
+            let res;
+            if (autoMode) {
+                log(`▶ Auto calibration (algo=${algo}, blocks=${getBlockSize()}, iter=${getMaxIter()})…`);
+                res = await window.pywebview.api.lancer_calibration_auto(
+                    exe, wdir, collectParams(), getMaxIter(), getBlockSize(), algo
+                );
+            } else {
+                log(`▶ Calibrating checked parameters (algo=${algo}, iter=${getMaxIter()})…`);
+                res = await window.pywebview.api.lancer_calibration(exe, wdir, collectParams(), getMaxIter(), algo);
+            }
+            if (!res.ok) { log(`❌ ${res.error}`); setRunning(false); }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // SENSIBILITÉ
+        // ══════════════════════════════════════════════════════════
+        async function lancerSensibilite() {
+            const exe = getExe(); const wdir = getDir();
+            if (!exe || !wdir) { log('❌ Set AQUATOX.exe path and working directory first.'); return; }
+            setRunning(true);
+            log(`▶ Running sensitivity analysis (${getNPoints()} pts/param)…`);
+            const res = await window.pywebview.api.lancer_sensibilite(exe, wdir, collectParams(), getNPoints());
+            if (!res.ok) { log(`❌ ${res.error}`); setRunning(false); }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // GRAPHES
+        // ══════════════════════════════════════════════════════════
+        async function genererGraphes() {
+            const wdir = getDir();
+            if (!wdir) { log('❌ Set the working directory first.'); return; }
+            setRunning(true);
+            log('▶ Generating plots…');
+            const res = await window.pywebview.api.generer_graphes(wdir);
+            if (!res.ok) { log(`❌ ${res.error}`); setRunning(false); }
+        }
+
+        async function ouvrirDossierGraphes() {
+            const wdir = getDir();
+            if (!wdir) { log('❌ Set the working directory first.'); return; }
+            const path = wdir.replace(/\\/g, '/') + '/graphes';
+            await window.pywebview.api.ouvrir_dossier(path);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // BILAN MODAL
+        // ══════════════════════════════════════════════════════════
+        window.onBilanReady = function (rows) {
+            const tbody = document.getElementById('bilan-tbody');
+            tbody.innerHTML = '';
+            rows.forEach(r => {
+                const ecart = r['Ecart_pct'] ?? null;
+                const ok = ecart !== null && Math.abs(ecart) < 20;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td>${r['Espèce'] ?? '—'}</td>
+                  <td>${fmt(r['VI'])}</td>
+                  <td>${fmt(r['V_finale'])}</td>
+                  <td class="${ok ? 'good' : 'bad'}">${ecart !== null ? ecart.toFixed(1) + '%' : '—'}</td>
+                  <td>${ok ? '✅' : '⚠️'}</td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('bilan-overlay').classList.add('show');
+        };
+
+        function fmt(v) { return v !== null && v !== undefined ? Number(v).toExponential(2) : '—'; }
+
+        function closeBilan(e) {
+            if (!e || e.target === document.getElementById('bilan-overlay') || !e.target) {
+                document.getElementById('bilan-overlay').classList.remove('show');
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // HELP MODAL
+        // ══════════════════════════════════════════════════════════
+        function ouvrirHelp() {
+            document.getElementById('help-overlay').classList.add('show');
+        }
+        function closeHelp(e) {
+            if (!e || e.target === document.getElementById('help-overlay') || !e.target) {
+                document.getElementById('help-overlay').classList.remove('show');
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // INIT
+        // ══════════════════════════════════════════════════════════
+        log('Ready. Open an AQUATOX .txt file to get started.');
+
+    </script>
+</body>
+</html>
