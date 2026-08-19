@@ -21,3 +21,9 @@ What I personnaly do to calibrate models efficiently:
 3. Run a calibration with those parameters selected. Use DE algorithm for quick wide search (with low numbers of parameters (put blocs of 10/15), and low number of iterations), or use CMA-ES for big blocs of parameters and fast results (300 iterations, blocs of 30 parameters)
 
 /!\ This tool is a new born and hasn't be tested a lot, it's not magical, it won't fix everything, it only fix the details so it don't break the reality of your model for blind optimization. However, if the error isn't going down enough, check the parameters which have been changed by +-10%, it might give indication, on where you can reduce error, but be careful about changing the realism of the species.
+This lead to a second /!\
+/!\ by default tolerance is 10%, putting an already calibrated model in AQUATOX_CAll_Tool means that parameters that as been stopped by those 10% are no longer stopped and might go over.
+For example:
+On a model Shrimp Kmort=1. After a calibration Kmort=1.1 (+10%), if you calibrate again without closing AQUATOX_Cal_Tool no problem it can't go higher if you haven't decided so.
+But if you close AQUATOX_Cal_Tool, open your model with Shrimp Kmort=1.1 and launch a calibration with Kmort, it can now go between 0.99 and 1.21. 
+
