@@ -1,8 +1,9 @@
-cma==4.4.4
-matplotlib==3.11.1
 numpy==2.4.2
-openpyxl==3.1.5
-pandas==3.0.5
-psutil==7.0.0
+pandas==3.0.0
+matplotlib==3.10.8
+cma==4.4.4
+scipy==1.17.1
 pywebview==6.2.1
-scipy==1.18.0
+psutil==7.0.0
+pyinstaller==6.20.0
+pyinstaller-hooks-contrib==2026.5
