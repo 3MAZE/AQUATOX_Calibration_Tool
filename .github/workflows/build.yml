@@ -1,1 +1,19 @@
+name: Build Windows App
 
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pyinstaller --onefile --windowed --name "AQ_Cal_Tool" --add-data "ui;ui" --icon=aquatox_CT_icon.ico main.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
